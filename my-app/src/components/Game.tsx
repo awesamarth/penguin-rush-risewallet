@@ -668,7 +668,7 @@ export default function Game() {
 
       <main className="flex flex-col items-center p-5 gap-5">
         <div className="flex gap-5 flex-wrap justify-center items-start">
-          <div className="relative w-175 rounded-xl shadow-[0_20px_60px_rgba(0,0,0,0.5),0_0_40px_rgba(100,200,255,0.2)]">
+          <div className="relative w-full max-w-[700px] rounded-xl shadow-[0_20px_60px_rgba(0,0,0,0.5),0_0_40px_rgba(100,200,255,0.2)]">
             <canvas ref={canvasRef} width={700} height={600} onClick={jump} className="block cursor-pointer rounded-xl" />
 
             <div className="absolute top-4 left-4 right-4 flex justify-between">
@@ -689,51 +689,55 @@ export default function Game() {
             </div>
 
             {showStartScreen && (
-              <div className="absolute top-0 left-0 right-0 bottom-0 bg-[rgba(10,22,40,0.95)] flex flex-col items-center justify-center text-center p-5">
-                <div className="text-6xl mb-4 animate-bounce">🐧</div>
-                <h1 className="text-4xl mb-2.5 shadow-[0_0_30px_rgba(79,195,247,0.8)] text-[#4fc3f7]">PENGUIN RUSH</h1>
-                <div className="bg-linear-to-br from-[#7c3aed] to-[#4f46e5] px-4 py-2 rounded-full text-xs mb-5">⛓️ Every Jump = 1 Transaction</div>
-                <p className="text-base text-[#90caf9] mb-5">On-Chain Game on RISE Testnet</p>
+              <div className="absolute top-0 left-0 right-0 bottom-0 bg-black/50 backdrop-blur-lg flex flex-col items-center justify-center text-center p-4 overflow-y-auto">
+                <div className="flex flex-col items-center max-h-full py-4">
+                  <div className="text-5xl mb-3 animate-bounce">🐧</div>
+                  <h1 className="text-4xl font-bold mb-2 text-white">PENGUIN RUSH</h1>
+                  <p className="text-sm text-slate-300 mb-4">An on-chain game built on RISE testnet.</p>
 
-                <div className="bg-white/10 px-6 py-4 rounded-xl mb-5 max-w-xs text-left text-[13px] text-[#b3e5fc]">
-                  <p className="my-1.5"><strong className="text-[#4fc3f7]">🎯 Goal:</strong> Jump to the mountain!</p>
-                  <p className="my-1.5"><strong className="text-[#4fc3f7]">🖱️ Click/Space:</strong> Jump (sends TX)</p>
-                  <p className="my-1.5"><strong className="text-[#4fc3f7]">⚡ RISE:</strong> 3ms confirmations!</p>
-                  <p className="my-1.5"><strong className="text-[#4fc3f7]">🔑 Session Key:</strong> No popups per jump!</p>
-                </div>
+                  <div className="bg-white/10 border border-white/20 p-4 rounded-xl mb-4 max-w-sm w-full text-left text-xs text-slate-200">
+                    <h2 className="text-base font-semibold text-white mb-2 text-center">How to Play</h2>
+                    <ul className="space-y-1.5">
+                      <li><span className="font-semibold text-sky-300">Goal:</span> Jump from iceberg to iceberg and reach the distant mountain.</li>
+                      <li><span className="font-semibold text-sky-300">Controls:</span> Click anywhere or press the Spacebar to jump.</li>
+                      <li><span className="font-semibold text-sky-300">On-Chain:</span> Every jump is a real transaction on RISE testnet!</li>
+                       <li><span className="font-semibold text-sky-300">Session Keys:</span> Authorize a session key to enjoy uninterrupted gameplay without popups for every jump.</li>
+                    </ul>
+                  </div>
 
-                <div className="text-xs text-[#90caf9] mb-5">
-                  {mounted && address ? `Connected: ${shortAddr}` : 'Connect RISE Wallet to play'}
-                </div>
+                  <div className="text-xs text-slate-400 mb-4">
+                    {mounted && address ? `Connected as: ${shortAddr}` : 'Please connect your RISE Wallet to play.'}
+                  </div>
 
                 {mounted && address && hasSessionKey ? (
-                  <div className="flex flex-col items-center gap-3">
+                  <div className="flex flex-col items-center gap-3 w-full max-w-sm">
                     <button onClick={handleStartGame}
-                      className="bg-linear-to-br from-[#4fc3f7] to-[#29b6f6] border-none px-10 py-4 text-lg font-bold text-[#0a1628] rounded-full transition-all shadow-[0_10px_30px_rgba(79,195,247,0.4)] hover:-translate-y-1 hover:shadow-[0_15px_40px_rgba(79,195,247,0.6)]">
-                      🚀 START GAME
+                      className="w-full bg-sky-500 hover:bg-sky-400 border-none px-10 py-4 text-lg font-bold text-white rounded-full transition-all shadow-[0_10px_30px_rgba(79,195,247,0.4)] hover:-translate-y-1 hover:shadow-lg hover:shadow-sky-400/40">
+                      START GAME
                     </button>
                     {sessionKeyData && (
-                      <div className="text-[10px] text-[#4ade80] font-mono bg-black/30 px-3 py-1.5 rounded-lg">
-                        🔑 {sessionKeyData.publicKey.slice(0, 16)}...{sessionKeyData.publicKey.slice(-8)}
+                      <div className="text-[11px] text-green-400 font-mono bg-black/30 px-3 py-1.5 rounded-md">
+                        Session Key: {sessionKeyData.publicKey.slice(0, 12)}...
                       </div>
                     )}
                   </div>
                 ) : mounted && address && !hasSessionKey ? (
-                  <div className="flex flex-col items-center gap-3">
-                    <div className="bg-red-500/20 border border-red-500/50 px-6 py-3 rounded-xl text-sm text-red-200">
-                      ⚠️ Session Key Required to Play
+                  <div className="flex flex-col items-center gap-4 w-full max-w-sm">
+                    <div className="bg-red-900/50 border border-red-500/50 px-6 py-4 rounded-xl text-base text-red-200">
+                      A Session Key is required to play.
                     </div>
                     <button onClick={handleCreateSessionKey}
-                      className="bg-linear-to-br from-[#a855f7] to-[#7c3aed] border-none px-8 py-3 text-base font-bold text-white rounded-full transition-all hover:-translate-y-0.5 hover:shadow-[0_10px_30px_rgba(168,85,247,0.4)]">
-                      🔑 Create Session Key (24 hours)
+                      className="w-full bg-purple-600 hover:bg-purple-500 border-none px-8 py-3 text-base font-bold text-white rounded-full transition-all hover:-translate-y-0.5 shadow-lg shadow-purple-500/20 hover:shadow-purple-500/40">
+                      Create Session Key
                     </button>
                   </div>
                 ) : (
                   <button disabled
-                    className="bg-linear-to-br from-[#4fc3f7] to-[#29b6f6] border-none px-10 py-4 text-lg font-bold text-[#0a1628] rounded-full opacity-50 cursor-not-allowed">
-                    Connect Wallet First
+                    className="w-full max-w-sm bg-gray-600 border-none px-10 py-4 text-lg font-bold text-gray-400 rounded-full opacity-70 cursor-not-allowed">
+                    Connect Wallet to Start
                   </button>
                 )}
+                </div>
               </div>
             )}
 
@@ -745,7 +749,7 @@ export default function Game() {
                 <p className="text-[#90caf9] my-2.5">{finalJumpCount} jumps recorded on-chain</p>
                 <button onClick={handleStartGame}
                   className="bg-linear-to-br from-[#4fc3f7] to-[#29b6f6] border-none px-10 py-4 text-lg font-bold text-[#0a1628] rounded-full transition-all shadow-[0_10px_30px_rgba(79,195,247,0.4)] hover:-translate-y-1 hover:shadow-[0_15px_40px_rgba(79,195,247,0.6)]">
-                  🔄 Play Again
+                  Play Again
                 </button>
               </div>
             )}
@@ -759,7 +763,7 @@ export default function Game() {
                 <p className="text-[#90caf9] my-2.5">{finalJumpCount} jumps recorded on-chain</p>
                 <button onClick={handleStartGame}
                   className="bg-linear-to-br from-[#4fc3f7] to-[#29b6f6] border-none px-10 py-4 text-lg font-bold text-[#0a1628] rounded-full transition-all shadow-[0_10px_30px_rgba(79,195,247,0.4)] hover:-translate-y-1 hover:shadow-[0_15px_40px_rgba(79,195,247,0.6)]">
-                  🔄 Play Again
+                  Play Again
                 </button>
               </div>
             )}
