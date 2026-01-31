@@ -143,7 +143,6 @@ export function useSoundEffects() {
 
     if (!isMuted && bgMusicRef.current.paused) {
       bgMusicRef.current.play().catch(err => {
-        console.log('Background music autoplay blocked:', err);
       });
     }
   }, [isMuted]);

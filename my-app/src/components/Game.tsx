@@ -31,7 +31,7 @@ export default function Game() {
   const [finalScore, setFinalScore] = useState(0);
   const [finalJumpCount, setFinalJumpCount] = useState(0);
   const [hasSessionKey, setHasSessionKey] = useState(false);
-  const [sessionKeyData, setSessionKeyData] = useState<{ privateKey: string; publicKey: string } | null>(null);
+  const [sessionKeyData, setSessionKeyData] = useState<{ privateKey: string; publicKey: string; expiry: number } | null>(null);
   const lastJumpTime = useRef(0);
   const refreshLeaderboard = useRef<(() => Promise<void>) | null>(null);
 
@@ -62,15 +62,8 @@ export default function Game() {
   const isSessionKeyValid = () => {
     if (!sessionKeyData) return false;
 
-    // If still loading permissions, assume valid (give benefit of doubt)
-    if (permissionsLoading || !permissions) return true;
-
     const now = Math.floor(Date.now() / 1000);
-    return permissions.some(
-      (perm: any) =>
-        perm.key?.publicKey === sessionKeyData.publicKey &&
-        perm.expiry > now
-    );
+    return sessionKeyData.expiry > now;
   };
 
   const handleCreateSessionKey = async () => {
@@ -78,15 +71,16 @@ export default function Game() {
       const privateKey = P256.randomPrivateKey();
       const publicKey = PublicKey.toHex(P256.getPublicKey({ privateKey }), { includePrefix: false });
 
+      const expiry = Math.floor(Date.now() / 1000) + 60 * 60 * 24; // 24 hours
 
       localStorage.setItem(
         `penguin.sessionKey.${publicKey}`,
-        JSON.stringify({ privateKey, publicKey })
+        JSON.stringify({ privateKey, publicKey, expiry })
       );
 
       const permissionParams = {
         key: { publicKey, type: 'p256' as const },
-        expiry: Math.floor(Date.now() / 1000) + 60 * 60 * 24, // 24 hours
+        expiry,
         feeToken: {
           limit: "1" as any,
           symbol: "ETH"
@@ -103,12 +97,12 @@ export default function Game() {
       //@ts-ignore
       await grantPermissions.mutateAsync(permissionParams);
 
-      const keyData = { privateKey, publicKey };
+      const keyData = { privateKey, publicKey, expiry };
       setSessionKeyData(keyData);
       setHasSessionKey(true);
 
       // Send a dummy transaction to initialize nonce
-      console.log('🔄 Sending dummy transaction to sync nonce...');
+      console.log('Sending dummy transaction to sync nonce...');
       try {
         const funcAbi = CONTRACT_ABI.find(f => f.name === 'jump');
         if (funcAbi && connector && address) {
@@ -140,10 +134,9 @@ export default function Game() {
             params: [{ ...request, ...(capabilities ? { capabilities } : {}), signature }]
           });
 
-          console.log('✅ Dummy transaction sent - nonce synced!');
+          console.log('Dummy transaction sent - nonce synced!');
         }
       } catch (e) {
-        console.log('⚠️ Dummy transaction failed (expected for first tx):', e);
       }
     } catch (error) {
       console.error('Session key error:', error);
@@ -169,7 +162,6 @@ export default function Game() {
           }
         }]
       });
-      console.log("ye dekh prepareResult: ",prepareResult)
 
       const { digest, capabilities, ...request } = prepareResult;
 
@@ -197,7 +189,6 @@ export default function Game() {
           params: [callId]
         });
 
-        // console.log('Call Status:', JSON.stringify(callStatus, null, 2));
 
 
         if (callStatus.status === 500) {
@@ -237,7 +228,7 @@ export default function Game() {
   const initGame = () => {
     const state = gameStateRef.current;
     state.penguin = { x: 100, y: 305, width: 35, height: 45, velocityY: 0, isJumping: false, onIceberg: true, currentIceberg: null };
-    state.gameSpeed = 0.8;
+    state.gameSpeed = 1.2;
     state.mountainX = 750;
     state.waveOffset = 0;
 
@@ -270,7 +261,6 @@ export default function Game() {
   });
 
   const handleStartGame = async () => {
-    console.log('🎮 handleStartGame called');
     if (!address) return;
     if (!hasSessionKey) return;
 
@@ -298,7 +288,6 @@ export default function Game() {
       const data = encodeFunctionData({ abi: [funcAbi], functionName: 'startGame' });
       const calls = [{ to: CONTRACT_ADDRESS, data, value: "0x0" }];
 
-      console.log('📤 Sending startGame transaction');
       await executeWithSessionKey(calls);
     } catch (error) {
       console.error('Start game TX error:', error);
@@ -311,7 +300,7 @@ export default function Game() {
     const { penguin } = gameStateRef.current;
     if (penguin.isJumping && !penguin.onIceberg) return;
 
-    penguin.velocityY = -11;
+    penguin.velocityY = -11.5;
     penguin.isJumping = true;
     penguin.onIceberg = false;
     penguin.currentIceberg = null;
@@ -372,9 +361,9 @@ export default function Game() {
       const state = gameStateRef.current;
 
       if (gameRunning) {
-        state.gameSpeed = Math.min(3.5, 0.8 + score / 400);
+        state.gameSpeed = Math.min(5.0, 1.2 + score / 300);
         const penguin = state.penguin;
-        penguin.velocityY += 0.55;
+        penguin.velocityY += 0.65;
         penguin.y += penguin.velocityY;
 
         if (penguin.onIceberg && penguin.currentIceberg) {
@@ -631,10 +620,17 @@ export default function Game() {
           const keyData = localStorage.getItem(storageKey);
           if (keyData) {
             const parsed = JSON.parse(keyData);
-            if (parsed.publicKey && parsed.privateKey) {
-              setSessionKeyData({ privateKey: parsed.privateKey, publicKey: parsed.publicKey });
-              setHasSessionKey(true);
-              break; // Use the first valid key found
+            if (parsed.publicKey && parsed.privateKey && parsed.expiry) {
+              // Check if the key is still valid
+              const now = Math.floor(Date.now() / 1000);
+              if (parsed.expiry > now) {
+                setSessionKeyData({ privateKey: parsed.privateKey, publicKey: parsed.publicKey, expiry: parsed.expiry });
+                setHasSessionKey(true);
+                break; // Use the first valid key found
+              } else {
+                // Remove expired key from localStorage
+                localStorage.removeItem(storageKey);
+              }
             }
           }
         } catch (e) {
