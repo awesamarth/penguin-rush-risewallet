@@ -43,7 +43,7 @@ export function Leaderboard({ userAddress, onRefreshReady }: LeaderboardProps) {
         address: CONTRACT_ADDRESS,
         abi: [getAllPlayersAbi],
         functionName: 'getAllPlayers',
-      })) as readonly string[];
+      })) as readonly `0x${string}`[];
 
       if (!allPlayersArray || allPlayersArray.length === 0) {
         setLeaderboard({ players: [], scores: [] });
@@ -60,7 +60,7 @@ export function Leaderboard({ userAddress, onRefreshReady }: LeaderboardProps) {
             address: CONTRACT_ADDRESS,
             abi: [highScoresAbi],
             functionName: 'highScores',
-            args: [address as `0x${string}`],
+            args: [address],
           })
         )
       );
